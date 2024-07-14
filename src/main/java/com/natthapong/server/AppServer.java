@@ -45,7 +45,7 @@ public class AppServer {
 //        return new RouteGroup(prefix, this);
 //    }
 
-    public void listen(int port) throws InterruptedException {
+    public void listen(int port){
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
@@ -63,14 +63,17 @@ public class AppServer {
                                 protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
                                     String uri = req.uri();
                                     String method = req.method().name();
+                                    System.out.println("method"  + method);
                                     RouteDefinition routeDef = routes.get(method + uri);
                                     if (routeDef != null) {
+                                        System.out.println("found");
                                         AppRequest request = new AppRequest(req);
                                         AppResponse response = new AppResponse(ctx);
                                         MiddlewareChain chain = new MiddlewareChainImpl(routeDef.handler, routeDef.afterResponseMiddlewares, response, ctx);
                                         new MiddlewareExecutor(middlewares, chain)
                                                 .execute(request, response);
                                     } else {
+                                        System.out.println("not found");
                                         sendNotFound(ctx);
                                     }
                                 }
@@ -83,9 +86,15 @@ public class AppServer {
                         }
                     });
 
-            ChannelFuture f = b.bind(port).sync();
-            System.out.printf("Server started on port %d%n", port);
-            f.channel().closeFuture().sync();
+            ChannelFuture f = null;
+            try {
+                f = b.bind(port).sync();
+                System.out.printf("Server started on port %d%n", port);
+                f.channel().closeFuture().sync();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();

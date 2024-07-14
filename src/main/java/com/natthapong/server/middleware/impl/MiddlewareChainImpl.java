@@ -42,6 +42,5 @@ public class MiddlewareChainImpl implements MiddlewareChain {
             String responseDataStr = JsonHelper.objectToJsonString(responseData);
             res.send(responseDataStr);
         }
-        ctx.writeAndFlush(res.getResponse()).addListener(ChannelFutureListener.CLOSE);
     }
 }
