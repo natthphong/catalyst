@@ -5,6 +5,7 @@ import com.natthapong.server.middleware.MiddlewareChain;
 import com.natthapong.server.middleware.impl.MiddlewareChainImpl;
 import com.natthapong.server.model.AppRequest;
 import com.natthapong.server.model.AppResponse;
+import com.natthapong.server.model.response.ServerDefaultResponse;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -23,7 +24,8 @@ public class AppServer {
     private final List<Middleware> middlewares = new ArrayList<>();
 
 
-    public AppServer() {}
+    public AppServer() {
+    }
 
 
     public AppServer middleware(Middleware middleware) {
@@ -45,7 +47,7 @@ public class AppServer {
 //        return new RouteGroup(prefix, this);
 //    }
 
-    public void listen(int port){
+    public void listen(int port) {
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
@@ -63,24 +65,19 @@ public class AppServer {
                                 protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
                                     String uri = req.uri();
                                     String method = req.method().name();
-                                    System.out.println("method"  + method);
+                                    System.out.println("method" + method);
+                                    System.out.println("uri" + uri);
                                     RouteDefinition routeDef = routes.get(method + uri);
+                                    AppResponse response = new AppResponse(ctx);
                                     if (routeDef != null) {
                                         System.out.println("found");
                                         AppRequest request = new AppRequest(req);
-                                        AppResponse response = new AppResponse(ctx);
                                         MiddlewareChain chain = new MiddlewareChainImpl(routeDef.handler, routeDef.afterResponseMiddlewares, response, ctx);
                                         new MiddlewareExecutor(middlewares, chain)
                                                 .execute(request, response);
                                     } else {
-                                        System.out.println("not found");
-                                        sendNotFound(ctx);
+                                        response.sendJson(ServerDefaultResponse.notFound());
                                     }
-                                }
-
-                                private void sendNotFound(ChannelHandlerContext ctx) {
-                                    FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND);
-                                    ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
                                 }
                             });
                         }
@@ -101,8 +98,7 @@ public class AppServer {
         }
     }
 
-//    public AppServer afterResponse(String path, Middleware middleware) {
-//        String key = "GET" + path;
+//    public AppServer afterResponse(Middleware middleware) {
 //        if (routes.containsKey(key)) {
 //            routes.get(key).afterResponseMiddlewares.add(middleware);
 //        } else {
@@ -124,7 +120,6 @@ public class AppServer {
 //    }
 
 
-
     private static class MiddlewareExecutor {
         private final List<Middleware> middlewares;
         private final MiddlewareChain chain;
@@ -144,16 +139,17 @@ public class AppServer {
             }
         }
     }
-}
 
-class RouteDefinition {
-   protected HttpHandler handler;
-    protected List<Middleware> middlewares;
-    protected List<Middleware> afterResponseMiddlewares;
+    private static class RouteDefinition {
+        protected HttpHandler handler;
+        protected List<Middleware> middlewares;
+        protected List<Middleware> afterResponseMiddlewares;
 
-    public RouteDefinition(HttpHandler handler, List<Middleware> middlewares, List<Middleware> afterResponseMiddlewares) {
-        this.handler = handler;
-        this.middlewares = middlewares;
-        this.afterResponseMiddlewares = afterResponseMiddlewares;
+        public RouteDefinition(HttpHandler handler, List<Middleware> middlewares, List<Middleware> afterResponseMiddlewares) {
+            this.handler = handler;
+            this.middlewares = middlewares;
+            this.afterResponseMiddlewares = afterResponseMiddlewares;
+        }
     }
 }
+

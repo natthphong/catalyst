@@ -28,12 +28,15 @@ public class MiddlewareChainImpl implements MiddlewareChain {
 
     @Override
     public void next(AppRequest req, AppResponse res) throws IOException {
-        currentIndex++;
-        if (currentIndex < middlewares.size()) {
-            middlewares.get(currentIndex).apply(req, res, this);
-        } else {
+        if (currentIndex==-1){
+            currentIndex++;
             Object responseData = handler.handle(req, res);
             sendResponse(res,responseData);
+        }
+        // TODO
+        if (currentIndex < middlewares.size()) {
+            currentIndex++;
+            middlewares.get(currentIndex).apply(req, res, this);
         }
     }
 

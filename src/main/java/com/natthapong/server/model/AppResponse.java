@@ -11,7 +11,7 @@ import java.io.IOException;
 public class AppResponse {
     private ChannelHandlerContext ctx;
     private FullHttpResponse response;
-    private boolean committed;
+    private volatile boolean committed;
 
     public AppResponse(ChannelHandlerContext ctx) {
         this.ctx = ctx;
@@ -34,6 +34,17 @@ public class AppResponse {
         send(json);
     }
 
+    public void send(byte[] body) {
+        if (!committed) {
+            response.content().writeBytes(body);
+            response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
+            ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+            committed = true;
+        }
+    }
+    public void setContentType(String value) {
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, value);
+    }
     public void setHeader(String key, String value) {
         response.headers().set(key, value);
     }
