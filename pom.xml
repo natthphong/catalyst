@@ -4,19 +4,36 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.natthapong</groupId>
+    <groupId>io.github.natthphong</groupId>
     <artifactId>catalyst</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub OWNER Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/natthphong/catalyst</url>
-        </repository>
-    </distributionManagement>
+    <version>1.0.0</version>
+    <url>https://github.com/natthphong/catalyst</url>
+    <description>Your project description goes here</description>
+
+    <scm>
+        <connection>scm:git:git://github.com/natthphong/catalyst.git</connection>
+        <developerConnection>scm:git:ssh://github.com:natthphong/catalyst.git</developerConnection>
+        <url>https://github.com/natthphong/catalyst/main</url>
+    </scm>
+
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Natthaphong Jaroenpronprasit</name>
+            <email>jaroenpronprasit@gmail.com</email>
+        </developer>
+    </developers>
+
 
 
     <dependencies>
+
         <!-- https://mvnrepository.com/artifact/io.netty/netty-all -->
         <dependency>
             <groupId>io.netty</groupId>
@@ -35,12 +52,84 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>2.17.2</version>
         </dependency>
+
     </dependencies>
 
     <properties>
+        <gpg.keyname>8FD288A5A8B6534781C2A7190FF19B86D2928648</gpg.keyname>
+        <gpg.passphrase>0858463561</gpg.passphrase>
         <maven.compiler.source>19</maven.compiler.source>
         <maven.compiler.target>19</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.5.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+<!--                    <skipPublishing>true</skipPublishing>-->
+                    <autoPublish>true</autoPublish>
+                    <waitUntil>published</waitUntil>
+                </configuration>
+
+            </plugin>
+
+            <!--            javadoc-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--            source-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--            pom, .asc-->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>1.6</version>
+                    <executions>
+                        <execution>
+                            <id>sign-artifacts</id>
+                            <goals>
+                                <goal>sign</goal>
+                            </goals>
+                            <phase>verify</phase>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <keyname>${gpg.keyname}</keyname>
+                        <passphrase>${gpg.passphrase}</passphrase>
+                    </configuration>
+                </plugin>
+
+        </plugins>
+    </build>
+
+
 
 </project>
