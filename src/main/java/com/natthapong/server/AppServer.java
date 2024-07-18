@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 public class AppServer {
+    //TODO LIST RouteDefinition path and method
     private final Map<String, RouteDefinition> routes = new HashMap<>();
     private final List<Middleware> middlewares = new ArrayList<>();
 

@@ -33,6 +33,11 @@
 
 
     <dependencies>
+        <dependency>
+            <groupId>io.github.natthphong</groupId>
+            <artifactId>tarson</artifactId>
+            <version>0.0.1</version>
+        </dependency>
 
         <!-- https://mvnrepository.com/artifact/io.netty/netty-all -->
         <dependency>
@@ -56,8 +61,6 @@
     </dependencies>
 
     <properties>
-        <gpg.keyname>8FD288A5A8B6534781C2A7190FF19B86D2928648</gpg.keyname>
-        <gpg.passphrase>0858463561</gpg.passphrase>
         <maven.compiler.source>19</maven.compiler.source>
         <maven.compiler.target>19</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -72,8 +75,8 @@
                 <configuration>
                     <publishingServerId>central</publishingServerId>
 <!--                    <skipPublishing>true</skipPublishing>-->
-                    <autoPublish>true</autoPublish>
-                    <waitUntil>published</waitUntil>
+<!--                    <autoPublish>true</autoPublish>-->
+<!--                    <waitUntil>published</waitUntil>-->
                 </configuration>
 
             </plugin>
@@ -121,10 +124,6 @@
                             <phase>verify</phase>
                         </execution>
                     </executions>
-                    <configuration>
-                        <keyname>${gpg.keyname}</keyname>
-                        <passphrase>${gpg.passphrase}</passphrase>
-                    </configuration>
                 </plugin>
 
         </plugins>
