@@ -6,11 +6,15 @@ import com.natthapong.server.route.GroupRoute;
 import com.natthapong.server.route.RouteDefinition;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class RouteDefinitionServer implements RouteDefinition {
     private final String path;
     private final String method;
     private final String regexPath;
+
+    private final Pattern pattern;
     private final List<String> pathVariable;
     private final HttpHandler handler;
     private final List<Middleware> middlewares;
@@ -28,8 +32,14 @@ public class RouteDefinitionServer implements RouteDefinition {
         this.regexPath = regexPath;
         this.pathVariable = this.getPathVariablesName(path);
         this.isRegexPath = !this.pathVariable.isEmpty();
+        this.pattern = Pattern.compile(regexPath);
     }
 
+
+    public boolean matches(String input){
+        Matcher m = pattern.matcher(input);
+        return m.matches();
+    }
 
     private List<String> getPathVariablesName(String path) {
         List<String> pathVariablesName = new ArrayList<>();

@@ -2,6 +2,9 @@ package com.natthapong.server.route.impl;
 
 import com.natthapong.server.handler.HttpHandler;
 import com.natthapong.server.middleware.Middleware;
+import com.natthapong.server.middleware.MiddlewareChain;
+import com.natthapong.server.middleware.impl.AfterResponseChainImpl;
+import com.natthapong.server.middleware.impl.MiddlewareChainImpl;
 import com.natthapong.server.model.AppRequest;
 import com.natthapong.server.model.AppResponse;
 import com.natthapong.server.model.response.ServerDefaultResponse;
@@ -18,7 +21,9 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class CatalystServerImpl implements CatalystServer {
@@ -61,8 +66,17 @@ public class CatalystServerImpl implements CatalystServer {
                                     AppResponse response = new AppResponse(ctx);
                                     if (rdfs != null) {
                                         AppRequest request = new AppRequest(req);
-                                        System.out.println(method);
-                                        System.out.println(uri);
+                                        List<Middleware> middlewares = new ArrayList<>(rdfs.getGroupRoute().getMiddlewares());
+                                        middlewares.addAll(rdfs.getMiddlewares());
+                                        MiddlewareChain middlewareChain = new MiddlewareChainImpl(rdfs.getHandler(), middlewares, ctx);
+
+                                        middlewareChain.next(request, response);
+                                        List<Middleware> afterResponse = new ArrayList<>(rdfs.getGroupRoute().getAfterResponseMiddlewares());
+                                        afterResponse.addAll(rdfs.getAfterResponseMiddlewares());
+
+                                        MiddlewareChain afterResponseChain = new AfterResponseChainImpl(afterResponse, ctx);
+                                        System.out.println("afterResponse" + afterResponse.size());
+                                        afterResponseChain.next(request, response);
                                     } else {
                                         response.sendJson(ServerDefaultResponse.notFound());
                                     }

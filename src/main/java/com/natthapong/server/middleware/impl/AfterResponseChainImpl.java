@@ -23,7 +23,7 @@ public class AfterResponseChainImpl implements MiddlewareChain {
     public void next(AppRequest req, AppResponse res) throws IOException {
         currentIndex++;
         if (currentIndex < afterResponse.size()) {
-            currentIndex++;
+            System.out.println("hello");
             afterResponse.get(currentIndex).apply(req, res, this);
         }
     }

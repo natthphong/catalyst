@@ -19,6 +19,10 @@ public class AppResponse {
         this.committed = false;
     }
 
+    public void setStatus(HttpResponseStatus status) {
+        this.response.setStatus(status);
+    }
+
     public void send(String responseText) {
         if (!committed) {
             response.content().writeBytes(Unpooled.copiedBuffer(responseText, io.netty.util.CharsetUtil.UTF_8));
@@ -42,9 +46,11 @@ public class AppResponse {
             committed = true;
         }
     }
+
     public void setContentType(String value) {
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, value);
     }
+
     public void setHeader(String key, String value) {
         response.headers().set(key, value);
     }

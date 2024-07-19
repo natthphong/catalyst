@@ -26,7 +26,6 @@ public class MiddlewareChainImpl implements MiddlewareChain {
     public void next(AppRequest req, AppResponse res) throws IOException {
         currentIndex++;
         if (currentIndex < middlewares.size()) {
-            currentIndex++;
             middlewares.get(currentIndex).apply(req, res, this);
         }else{
             handler.handle(req, res);

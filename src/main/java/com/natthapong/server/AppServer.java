@@ -24,16 +24,11 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Deprecated
 public class AppServer {
 
-    //TODO Map<reg/RouteDefinition> RouteDefinition  add RouteDefinition base Group "/" add ->  base Group "/" RouteDefinition
-    //TODO group get "/test" AppServer-> add grpup -> AppServer add routes group add regex group add -> RouteDefinition
-    //TODO LIST<GROUP> add group  -> group
-
-    //TODO LIST RouteDefinition path and method
     private final Map<String, RouteDefinition> routes = new HashMap<>();
 
-    //TODO route have pathVariable
     private final List<RouteDefinition> routeDefinitions = new ArrayList<>();
 
     private final List<Middleware> middlewares = new ArrayList<>();
