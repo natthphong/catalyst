@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RouteDefinitionServer implements RouteDefinition {
+class RouteDefinitionServer implements RouteDefinition {
     private final String path;
     private final String method;
     private final String regexPath;
