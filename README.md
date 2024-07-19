@@ -1,7 +1,15 @@
 # Catalyst
  Modern java framework api
 
-    
+### maven 
+```xml
+<dependency>
+    <groupId>io.github.natthphong</groupId>
+    <artifactId>catalyst</artifactId>
+    <version>1.0.1</version>
+</dependency>
+```
+
 
 ### simple server
 ```java
