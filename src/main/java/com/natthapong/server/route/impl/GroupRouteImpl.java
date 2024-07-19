@@ -16,8 +16,7 @@ import java.util.List;
 import java.util.Objects;
 
 
-
-public class GroupRouteImpl implements GroupRoute {
+class GroupRouteImpl implements GroupRoute {
 
     private final CatalystServer catalystServer;
     private final String prefix;
@@ -57,22 +56,22 @@ public class GroupRouteImpl implements GroupRoute {
 
     @Override
     public RouteDefinition get(String path, HttpHandler handler) {
-        return catalystServer.addRouteDefinition(HttpMethod.GET, path, this, handler);
+        return catalystServer.addRouteDefinition(HttpMethod.GET, this.prefix + path, this, handler);
     }
 
     @Override
     public RouteDefinition post(String path, HttpHandler handler) {
-        return catalystServer.addRouteDefinition(HttpMethod.POST, path, this, handler);
+        return catalystServer.addRouteDefinition(HttpMethod.POST, this.prefix + path, this, handler);
     }
 
     @Override
     public RouteDefinition put(String path, HttpHandler handler) {
-        return catalystServer.addRouteDefinition(HttpMethod.PUT, path, this, handler);
+        return catalystServer.addRouteDefinition(HttpMethod.PUT, this.prefix + path, this, handler);
     }
 
     @Override
     public RouteDefinition delete(String path, HttpHandler handler) {
-        return catalystServer.addRouteDefinition(HttpMethod.DELETE, path, this, handler);
+        return catalystServer.addRouteDefinition(HttpMethod.DELETE, this.prefix + path, this, handler);
     }
 
 
