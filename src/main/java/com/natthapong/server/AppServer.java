@@ -1,11 +1,14 @@
 package com.natthapong.server;
 
+import com.natthapong.server.exception.AppRequestException;
+import com.natthapong.server.handler.HttpHandler;
 import com.natthapong.server.middleware.Middleware;
 import com.natthapong.server.middleware.MiddlewareChain;
 import com.natthapong.server.middleware.impl.MiddlewareChainImpl;
 import com.natthapong.server.model.AppRequest;
 import com.natthapong.server.model.AppResponse;
 import com.natthapong.server.model.response.ServerDefaultResponse;
+import com.natthapong.utils.Httpenum.HttpMethod;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -18,12 +21,24 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class AppServer {
+
+    //TODO Map<reg/RouteDefinition> RouteDefinition  add RouteDefinition base Group "/" add ->  base Group "/" RouteDefinition
+    //TODO group get "/test" AppServer-> add grpup -> AppServer add routes group add regex group add -> RouteDefinition
+    //TODO LIST<GROUP> add group  -> group
+
     //TODO LIST RouteDefinition path and method
     private final Map<String, RouteDefinition> routes = new HashMap<>();
+
+    //TODO route have pathVariable
+    private final List<RouteDefinition> routeDefinitions = new ArrayList<>();
+
     private final List<Middleware> middlewares = new ArrayList<>();
 
+    private final Map<String, List<Middleware>> middlewareGroup = new HashMap<>();
 
     public AppServer() {
     }
@@ -34,13 +49,21 @@ public class AppServer {
         return this;
     }
 
+    private void pushRoute (String method,String path, HttpHandler handler){
+        RouteDefinition route = new RouteDefinition(handler, HttpMethod.POST.getValue(), path);
+        if (route.pathVariable.isEmpty()){
+            routes.put(HttpMethod.POST.getValue() + path, route);
+        }else{
+            routeDefinitions.add(route);
+        }
+    }
     public AppServer get(String path, HttpHandler handler) {
-        routes.put("GET" + path, new RouteDefinition(handler, new ArrayList<>(), new ArrayList<>()));
+
         return this;
     }
 
     public AppServer post(String path, HttpHandler handler) {
-        routes.put("POST" + path, new RouteDefinition(handler, new ArrayList<>(), new ArrayList<>()));
+
         return this;
     }
 
@@ -58,6 +81,7 @@ public class AppServer {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) {
+
                             ChannelPipeline p = ch.pipeline();
                             p.addLast(new HttpServerCodec());
                             p.addLast(new HttpObjectAggregator(1048576));
@@ -66,19 +90,20 @@ public class AppServer {
                                 protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
                                     String uri = req.uri();
                                     String method = req.method().name();
-                                    System.out.println("method" + method);
-                                    System.out.println("uri" + uri);
-                                    RouteDefinition routeDef = routes.get(method + uri);
+                                    //TODO URi method with class route
+                                    System.out.println( method);
+                                    System.out.println(uri);
+//                                    RouteDefinition routeDef = routes.get(method + uri);
                                     AppResponse response = new AppResponse(ctx);
-                                    if (routeDef != null) {
-                                        System.out.println("found");
-                                        AppRequest request = new AppRequest(req);
-                                        MiddlewareChain chain = new MiddlewareChainImpl(routeDef.handler, routeDef.afterResponseMiddlewares, response, ctx);
-                                        new MiddlewareExecutor(middlewares, chain)
-                                                .execute(request, response);
-                                    } else {
-                                        response.sendJson(ServerDefaultResponse.notFound());
-                                    }
+//                                    if (routeDef != null) {
+//                                        AppRequest request = new AppRequest(req);
+//                                        MiddlewareChain chain = new MiddlewareChainImpl(routeDef.handler, middlewares, ctx);
+//                                        new MiddlewareExecutor(middlewares, chain)
+//                                                .execute(request, response);
+//                                    } else {
+//                                        response.sendJson(ServerDefaultResponse.notFound());
+//                                    }
+                                    response.sendJson(ServerDefaultResponse.notFound());
                                 }
                             });
                         }
@@ -141,16 +166,70 @@ public class AppServer {
         }
     }
 
+
     private static class RouteDefinition {
+        protected String path;
+        protected String method;
+        private final  Pattern pattern;
+
+        protected List<String> pathVariable;
         protected HttpHandler handler;
         protected List<Middleware> middlewares;
         protected List<Middleware> afterResponseMiddlewares;
 
-        public RouteDefinition(HttpHandler handler, List<Middleware> middlewares, List<Middleware> afterResponseMiddlewares) {
+        public RouteDefinition(HttpHandler handler, String method, String path) {
             this.handler = handler;
-            this.middlewares = middlewares;
-            this.afterResponseMiddlewares = afterResponseMiddlewares;
+            this.middlewares = new ArrayList<>();
+            this.afterResponseMiddlewares = new ArrayList<>();
+            this.pattern = createPattern(path);
+            this.pathVariable = extractPathName(path);
         }
+
+//        private Map<String, String> parseQueryParams(String query) {
+//            //TODO can speed than this
+//             query = query.split("\\?").length > 1
+//                     ? query.split("\\?")[1]
+//                     : "";
+//            Map<String, String> queryParams = new HashMap<>();
+//            String[] pairs = query.split("&");
+//            for (String pair : pairs) {
+//                String[] keyValue = pair.split("=");
+//                String key = keyValue[0];
+//                String value = keyValue.length > 1 ? keyValue[1] : "";
+//                queryParams.put(key, value);
+//            }
+//            return queryParams;
+//        }
+        public Map<String, String> checkPathUrl(String requestPath) {
+            Matcher matcher = pattern.matcher(requestPath);
+            Map<String, String> pathVariables = new HashMap<>();
+            if (matcher.matches()) {
+                for (int i = 1; i <= matcher.groupCount(); i++) {
+                    String name = pathVariable.get(i-1);
+                    pathVariables.put(name, matcher.group(i));
+                }
+            }else{
+                throw new AppRequestException(404,"path not found");
+            }
+            return pathVariables;
+        }
+
+
+        private List<String> extractPathName(String path) {
+            List<String> groupNames = new ArrayList<>();
+            Pattern pattern = Pattern.compile("\\{([^/]+)\\}");
+            Matcher matcher = pattern.matcher(path);
+            while (matcher.find()) {
+                groupNames.add(matcher.group(1));
+            }
+            return groupNames;
+        }
+
+        private Pattern createPattern(String path) {
+            String regex = path.replaceAll("\\{([^/]+)\\}", "(?<$1>[^/]+)");
+            return Pattern.compile(regex);
+        }
+
     }
 }
 

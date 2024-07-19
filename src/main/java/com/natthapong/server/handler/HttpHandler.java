@@ -1,4 +1,4 @@
-package com.natthapong.server;
+package com.natthapong.server.handler;
 
 import com.natthapong.server.model.AppRequest;
 import com.natthapong.server.model.AppResponse;
@@ -10,5 +10,5 @@ import java.io.IOException;
 public interface HttpHandler {
 
 
-    Object handle(AppRequest req, AppResponse res);
+    void handle(AppRequest req, AppResponse res);
 }

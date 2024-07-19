@@ -33,11 +33,7 @@
 
 
     <dependencies>
-        <dependency>
-            <groupId>io.github.natthphong</groupId>
-            <artifactId>tarson</artifactId>
-            <version>0.0.1</version>
-        </dependency>
+
 
         <!-- https://mvnrepository.com/artifact/io.netty/netty-all -->
         <dependency>
