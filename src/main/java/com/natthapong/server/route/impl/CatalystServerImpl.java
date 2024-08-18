@@ -20,6 +20,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.stream.ChunkedWriteHandler;
+import io.netty.util.internal.StringUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -65,8 +66,8 @@ public class CatalystServerImpl implements CatalystServer {
                                                 }
                                             }
                                         }
-
-                                        String contentType = req.headers().get(HttpHeaderNames.CONTENT_TYPE).split(";")[0];
+                                        String headerType = req.headers().get(HttpHeaderNames.CONTENT_TYPE);
+                                        String contentType = StringUtil.isNullOrEmpty(headerType)?"":req.headers().get(HttpHeaderNames.CONTENT_TYPE).split(";")[0];
                                         if (rdfs != null) {
                                             AppRequest request = new AppRequest(req);
                                             if (req.method().name().equals(HttpMethod.POST.getValue())
