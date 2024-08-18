@@ -2,39 +2,35 @@
 //
 //import com.natthapong.server.route.CatalystServer;
 //import com.natthapong.server.route.GroupRoute;
+//import io.netty.buffer.ByteBuf;
 //import io.netty.handler.codec.http.HttpResponseStatus;
+//import io.netty.handler.codec.http.multipart.FileUpload;
+//
+//import java.io.IOException;
+//import java.nio.charset.StandardCharsets;
 //
 //public class Main {
 //    public static void main(String[] args) {
 //        CatalystServer server = CatalystServer.init();
 //
+//        server.post("/upload",(req,res)->{
 //
-//        server.afterResponse(((req, res, chain) -> {
-//            System.out.println("afterresponse eiei");
-//            chain.next(req, res);
-//        }));
-//        server.get("/", ((req, res) -> res.send("init")));
-//        server.get("/hello", ((req, res) -> res.send("hello")));
-//
-//        server.middleware(((req, res, chain) -> {
-//            System.out.println("hello eiei gu mai chain");
-//            chain.next(req, res);
-//        }));
-//
-//        GroupRoute api = server.group("/api/v1");
+//            FileUpload file =  req.getFileUpload("file");
+//            String fileName = file.getFilename();
+//            ByteBuf fileContent = file.content();
+//            try {
+//                byte[] tmp =file.get();
+//                System.out.println("Received file: \n" + new String(tmp));
+//            } catch (IOException e) {
+//                throw new RuntimeException(e);
+//            }
 //
 //
-//        api.get("/hello", ((req, res) -> res.send("hello from group")));
+//        });
 //
-//        api.middleware(((req, res, chain) -> {
-//            System.out.println("in group api");
-//            chain.next(req, res);
-//        }));
 //
-//        api.afterResponse(((req, res, chain) -> {
-//            System.out.println("after Response");
-//            chain.next(req, res);
-//        }));
+//
+//
 //
 //        server.listen(8080);
 //

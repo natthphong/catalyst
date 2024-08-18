@@ -10,7 +10,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.TimeZone;
 
 public class JsonHelper {
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    private final static ObjectMapper objectMapper = new ObjectMapper();
 
     private JsonHelper() {
         throw new IllegalStateException("Utility class");

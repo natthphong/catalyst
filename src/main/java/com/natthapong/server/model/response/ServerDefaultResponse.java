@@ -34,6 +34,12 @@ public class ServerDefaultResponse {
     public static ServerDefaultResponse notFound(){
         return new ServerDefaultResponse(LocalDateTime.now(),"path not found");
     }
+    public static ServerDefaultResponse internalError(String msg){
+        return new ServerDefaultResponse(LocalDateTime.now(),msg);
+    }
+    public static ServerDefaultResponse internalError(){
+        return new ServerDefaultResponse(LocalDateTime.now(),"internal error");
+    }
     @Override
     public String toString() {
         return "ServerDefaultResponse{" +

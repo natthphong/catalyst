@@ -11,15 +11,15 @@ import com.natthapong.server.model.response.ServerDefaultResponse;
 import com.natthapong.server.route.CatalystServer;
 import com.natthapong.server.route.GroupRoute;
 import com.natthapong.server.route.RouteDefinition;
+import com.natthapong.utils.Httpenum.HttpContentType;
 import com.natthapong.utils.Httpenum.HttpMethod;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.*;
+import io.netty.handler.stream.ChunkedWriteHandler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +34,7 @@ public class CatalystServerImpl implements CatalystServer {
 
     @Override
     public void listen(int port) {
-        EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+        EventLoopGroup bossGroup = new NioEventLoopGroup(10);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
             ServerBootstrap b = new ServerBootstrap();
@@ -46,39 +46,49 @@ public class CatalystServerImpl implements CatalystServer {
 
                             ChannelPipeline p = ch.pipeline();
                             p.addLast(new HttpServerCodec());
-                            p.addLast(new HttpObjectAggregator(1048576));
+                            p.addLast(new ChunkedWriteHandler());
+                            p.addLast(new HttpObjectAggregator(Integer.MAX_VALUE));
                             p.addLast(new SimpleChannelInboundHandler<FullHttpRequest>() {
                                 @Override
-                                protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
-                                    String uri = req.uri();
-                                    String method = req.method().name();
-                                    String fullPath = method + ":" + uri;
-                                    RouteDefinitionServer rdfs = routes.get(fullPath);
-                                    if (rdfs == null) {
-                                        for (Map.Entry<String, RouteDefinitionServer> entry : routesRegex.entrySet()) {
-                                            String regexFullPath = entry.getKey();
-                                            if (fullPath.matches(regexFullPath)) {
-                                                rdfs = entry.getValue();
+                                protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req){
+                                    AppResponse response = new AppResponse(ctx);
+                                    try {
+                                        String uri = req.uri();
+                                        String method = req.method().name();
+                                        String fullPath = method + ":" + uri;
+                                        RouteDefinitionServer rdfs = routes.get(fullPath);
+                                        if (rdfs == null) {
+                                            for (Map.Entry<String, RouteDefinitionServer> entry : routesRegex.entrySet()) {
+                                                String regexFullPath = entry.getKey();
+                                                if (fullPath.matches(regexFullPath)) {
+                                                    rdfs = entry.getValue();
+                                                }
                                             }
                                         }
-                                    }
 
-                                    AppResponse response = new AppResponse(ctx);
-                                    if (rdfs != null) {
-                                        AppRequest request = new AppRequest(req);
-                                        List<Middleware> middlewares = new ArrayList<>(rdfs.getGroupRoute().getMiddlewares());
-                                        middlewares.addAll(rdfs.getMiddlewares());
-                                        MiddlewareChain middlewareChain = new MiddlewareChainImpl(rdfs.getHandler(), middlewares, ctx);
+                                        String contentType = req.headers().get(HttpHeaderNames.CONTENT_TYPE).split(";")[0];
+                                        if (rdfs != null) {
+                                            AppRequest request = new AppRequest(req);
+                                            if (req.method().name().equals(HttpMethod.POST.getValue())
+                                                    && HttpContentType.MULTIPART_FORM_DATA.getValue().equalsIgnoreCase(contentType)) {
+                                                request.setModeBodyFile(true);
+                                            }
+                                            List<Middleware> middlewares = new ArrayList<>(rdfs.getGroupRoute().getMiddlewares());
+                                            middlewares.addAll(rdfs.getMiddlewares());
+                                            MiddlewareChain middlewareChain = new MiddlewareChainImpl(rdfs.getHandler(), middlewares, ctx);
 
-                                        middlewareChain.next(request, response);
-                                        List<Middleware> afterResponse = new ArrayList<>(rdfs.getGroupRoute().getAfterResponseMiddlewares());
-                                        afterResponse.addAll(rdfs.getAfterResponseMiddlewares());
+                                            middlewareChain.next(request, response);
+                                            List<Middleware> afterResponse = new ArrayList<>(rdfs.getGroupRoute().getAfterResponseMiddlewares());
+                                            afterResponse.addAll(rdfs.getAfterResponseMiddlewares());
 
-                                        MiddlewareChain afterResponseChain = new AfterResponseChainImpl(afterResponse, ctx);
-                                        System.out.println("afterResponse" + afterResponse.size());
-                                        afterResponseChain.next(request, response);
-                                    } else {
-                                        response.sendJson(ServerDefaultResponse.notFound());
+                                            MiddlewareChain afterResponseChain = new AfterResponseChainImpl(afterResponse, ctx);
+                                            afterResponseChain.next(request, response);
+                                        } else {
+                                            response.sendJson(ServerDefaultResponse.notFound(),HttpResponseStatus.NOT_FOUND);
+                                        }
+                                    }catch (Exception ex){
+                                        ex.printStackTrace();
+                                        response.sendJson(ServerDefaultResponse.internalError(), HttpResponseStatus.INTERNAL_SERVER_ERROR);
                                     }
 
                                 }

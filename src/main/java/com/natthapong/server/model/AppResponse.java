@@ -32,7 +32,13 @@ public class AppResponse {
         }
     }
 
-    public void sendJson(Object data) throws IOException {
+    public void sendJson(Object data,HttpResponseStatus status) {
+        this.response.setStatus(status);
+        String json = JsonHelper.objectToJsonString(data);
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json");
+        send(json);
+    }
+    public void sendJson(Object data)  {
         String json = JsonHelper.objectToJsonString(data);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json");
         send(json);
