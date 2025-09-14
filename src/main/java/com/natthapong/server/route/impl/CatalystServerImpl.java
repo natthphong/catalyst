@@ -1,30 +1,17 @@
 package com.natthapong.server.route.impl;
 
+import com.natthapong.server.core.CatalystServerConfig;
+
 import com.natthapong.server.handler.HttpHandler;
 import com.natthapong.server.middleware.Middleware;
-import com.natthapong.server.middleware.MiddlewareChain;
 import com.natthapong.server.middleware.impl.AfterResponseChainImpl;
 import com.natthapong.server.middleware.impl.MiddlewareChainImpl;
-import com.natthapong.server.model.AppRequest;
-import com.natthapong.server.model.AppResponse;
-import com.natthapong.server.model.response.ServerDefaultResponse;
 import com.natthapong.server.route.CatalystServer;
 import com.natthapong.server.route.GroupRoute;
 import com.natthapong.server.route.RouteDefinition;
-import com.natthapong.utils.Httpenum.HttpContentType;
 import com.natthapong.utils.Httpenum.HttpMethod;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http.*;
-import io.netty.handler.stream.ChunkedWriteHandler;
-import io.netty.util.internal.StringUtil;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class CatalystServerImpl implements CatalystServer {
@@ -32,86 +19,52 @@ public class CatalystServerImpl implements CatalystServer {
     private final Map<String, RouteDefinitionServer> routes = new HashMap<>();
     private final Map<String, RouteDefinitionServer> routesRegex = new HashMap<>();
     private final GroupRoute groupRoute = new GroupRouteImpl(this, "/");
+    private CatalystServerConfig config;
+
+    public CatalystServerImpl() {}
+
+    public CatalystServerImpl(CatalystServerConfig config) {
+        this.config = config;
+    }
+
+    public CatalystServerImpl config(CatalystServerConfig config) {
+        this.config = config;
+        return this;
+    }
+
+    /** Internal resolver used by CatalystSocketServer. */
+    private RouteDefinitionServer resolve(String method, String path) {
+        String fullPath = method + ":" + path;
+        RouteDefinitionServer rdfs = routes.get(fullPath);
+        if (rdfs != null) return rdfs;
+        for (Map.Entry<String, RouteDefinitionServer> e : routesRegex.entrySet()) {
+            if (fullPath.matches(e.getKey())) return e.getValue();
+        }
+        return null;
+    }
 
     @Override
     public void listen(int port) {
-        EventLoopGroup bossGroup = new NioEventLoopGroup(10);
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
-        try {
-            ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup)
-                    .channel(NioServerSocketChannel.class)
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        protected void initChannel(SocketChannel ch) {
-
-                            ChannelPipeline p = ch.pipeline();
-                            p.addLast(new HttpServerCodec());
-                            p.addLast(new ChunkedWriteHandler());
-                            p.addLast(new HttpObjectAggregator(Integer.MAX_VALUE));
-                            p.addLast(new SimpleChannelInboundHandler<FullHttpRequest>() {
-                                @Override
-                                protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req){
-                                    AppResponse response = new AppResponse(ctx);
-                                    try {
-                                        String uri = req.uri();
-                                        String method = req.method().name();
-                                        String fullPath = method + ":" + uri;
-                                        RouteDefinitionServer rdfs = routes.get(fullPath);
-                                        if (rdfs == null) {
-                                            for (Map.Entry<String, RouteDefinitionServer> entry : routesRegex.entrySet()) {
-                                                String regexFullPath = entry.getKey();
-                                                if (fullPath.matches(regexFullPath)) {
-                                                    rdfs = entry.getValue();
-                                                }
-                                            }
-                                        }
-                                        String headerType = req.headers().get(HttpHeaderNames.CONTENT_TYPE);
-                                        String contentType = StringUtil.isNullOrEmpty(headerType)?"":req.headers().get(HttpHeaderNames.CONTENT_TYPE).split(";")[0];
-                                        if (rdfs != null) {
-                                            AppRequest request = new AppRequest(req);
-                                            if (req.method().name().equals(HttpMethod.POST.getValue())
-                                                    && HttpContentType.MULTIPART_FORM_DATA.getValue().equalsIgnoreCase(contentType)) {
-                                                request.setModeBodyFile(true);
-                                            }
-                                            List<Middleware> middlewares = new ArrayList<>(rdfs.getGroupRoute().getMiddlewares());
-                                            middlewares.addAll(rdfs.getMiddlewares());
-                                            MiddlewareChain middlewareChain = new MiddlewareChainImpl(rdfs.getHandler(), middlewares, ctx);
-
-                                            middlewareChain.next(request, response);
-                                            List<Middleware> afterResponse = new ArrayList<>(rdfs.getGroupRoute().getAfterResponseMiddlewares());
-                                            afterResponse.addAll(rdfs.getAfterResponseMiddlewares());
-
-                                            MiddlewareChain afterResponseChain = new AfterResponseChainImpl(afterResponse, ctx);
-                                            afterResponseChain.next(request, response);
-                                        } else {
-                                            response.sendJson(ServerDefaultResponse.notFound(),HttpResponseStatus.NOT_FOUND);
-                                        }
-                                    }catch (Exception ex){
-                                        ex.printStackTrace();
-                                        response.sendJson(ServerDefaultResponse.internalError(), HttpResponseStatus.INTERNAL_SERVER_ERROR);
-                                    }
-
-                                }
-                            });
-                        }
-                    });
-
-            ChannelFuture f = null;
-            try {
-                f = b.bind(port).sync();
-                System.out.printf("Server started on port %d%n", port);
-                f.channel().closeFuture().sync();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-
-        } finally {
-            bossGroup.shutdownGracefully();
-            workerGroup.shutdownGracefully();
+        if (config == null) {
+            config = new CatalystServerConfig() {
+                @Override public int port() { return port; }
+            };
+        } else {
+            CatalystServerConfig base = config;
+            config = new CatalystServerConfig() {
+                @Override public int port() { return port; }
+                @Override public int backlog() { return base.backlog(); }
+                @Override public int maxRequestSize() { return base.maxRequestSize(); }
+                @Override public int coreThreads() { return base.coreThreads(); }
+                @Override public int maxThreads() { return base.maxThreads(); }
+                @Override public long keepAliveSeconds() { return base.keepAliveSeconds(); }
+                @Override public int socketReadTimeoutMs() { return base.socketReadTimeoutMs(); }
+            };
         }
-    }
 
+        CatalystSocketServer server = new CatalystSocketServer(this::resolve, config);
+        server.start();
+    }
 
     @Override
     public RouteDefinition addRouteDefinition(HttpMethod method, String path, HttpHandler handler) {
@@ -121,8 +74,7 @@ public class CatalystServerImpl implements CatalystServer {
     @Override
     public RouteDefinition addRouteDefinition(HttpMethod method, String path, GroupRoute groupRoute, HttpHandler handler) {
         String methodStr = method.getValue();
-        String fullPath = methodStr + ":" + path;
-        fullPath = fullPath.replaceAll(":\\w+", "\\\\w+");
+        String fullPath = (methodStr + ":" + path).replaceAll(":\\w+", "\\\\w+");
         RouteDefinitionServer route = new RouteDefinitionServer(fullPath, path, methodStr, handler, groupRoute);
         if (route.isRegexPath()) {
             routesRegex.put(fullPath, route);

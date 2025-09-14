@@ -4,19 +4,16 @@ import com.natthapong.server.middleware.Middleware;
 import com.natthapong.server.middleware.MiddlewareChain;
 import com.natthapong.server.model.AppRequest;
 import com.natthapong.server.model.AppResponse;
-import io.netty.channel.ChannelHandlerContext;
 
 import java.io.IOException;
 import java.util.List;
 
 public class AfterResponseChainImpl implements MiddlewareChain {
     private final List<Middleware> afterResponse;
-    private final ChannelHandlerContext ctx;
     private int currentIndex = -1;
 
-    public AfterResponseChainImpl(List<Middleware> afterResponse, ChannelHandlerContext ctx) {
+    public AfterResponseChainImpl(List<Middleware> afterResponse) {
         this.afterResponse = afterResponse;
-        this.ctx = ctx;
     }
 
     @Override
@@ -26,5 +23,4 @@ public class AfterResponseChainImpl implements MiddlewareChain {
             afterResponse.get(currentIndex).apply(req, res, this);
         }
     }
-
 }

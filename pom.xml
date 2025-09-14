@@ -6,7 +6,7 @@
 
     <groupId>io.github.natthphong</groupId>
     <artifactId>catalyst</artifactId>
-    <version>1.0.2-fix</version>
+    <version>1.0.3</version>
     <url>https://github.com/natthphong/catalyst</url>
     <description>Your project description goes here</description>
 
@@ -35,12 +35,6 @@
     <dependencies>
 
 
-        <!-- https://mvnrepository.com/artifact/io.netty/netty-all -->
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-            <version>4.1.111.Final</version>
-        </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
