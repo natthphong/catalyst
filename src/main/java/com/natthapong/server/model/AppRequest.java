@@ -23,7 +23,8 @@ public class AppRequest {
     private final Map<String, CatalystFileUpload> fileUpload = new HashMap<>();
     private final Map<String, String> attributeMap = new HashMap<>();
 
-    // headers (compat: Map<String, List<String>>)
+    /** Headers as {@code Map<String, List<String>>} (compat). */
+
     private Map<String, List<String>> headers = new HashMap<>();
 
     public AppRequest(CatalystHttpRequest request) {
@@ -72,13 +73,15 @@ public class AppRequest {
         return JsonHelper.jsonStringToObject(body, tClass);
     }
 
-    /** Kept behavior: return path including query (Netty's uri()). */
+    /** @return the HTTP path including the query string (rawPath). */
     public String getPath() {
         // rawPath contains original target (may include query)
         return request.rawPath;
     }
 
-    /** Headers as Map<String, List<String>> (compat). */
+    /** Headers as {@code Map<String, List<String>>} (compat).
+     *  @return headers grouped as a list per name
+     */
     public Map<String, List<String>> getHeaders() {
         if (headers.isEmpty()) {
             headers = request.headers.entrySet().stream()
